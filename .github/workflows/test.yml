@@ -1,14 +1,16 @@
-# .github/workflows/test.yml
-name: Run Lambda Unit Tests
+name: CI/CD - Deploy Lambda Function
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
 
 jobs:
-  test:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v3
 
       - name: Set up Python 3.12
@@ -17,9 +19,21 @@ jobs:
           python-version: '3.12'
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
       - name: Run unit tests
-        run: |
-          python -m unittest test_lambda.py
+        run: python -m unittest test_lambda.py
+
+      - name: Zip Lambda function
+        run: zip function.zip lambda_function.py
+
+      - name: Deploy to AWS Lambda
+        uses: aws-actions/aws-cli-action@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          inline-script: |
+            aws lambda update-function-code \
+              --function-name ${{ secrets.LAMBDA_FUNCTION_NAME }} \
+              --zip-file fileb://function.zip
