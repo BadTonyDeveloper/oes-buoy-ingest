@@ -4,8 +4,9 @@ from moto import mock_s3
 import boto3
 import os
 import json
+import importlib
 
-# Import the Lambda function to test
+# This module will be imported/reloaded after setting environment variables
 import lambda_function
 
 
@@ -20,7 +21,10 @@ class TestLambdaFunction(unittest.TestCase):
         bucket_name = "oes-buoy-data-eu-west-3-dev"
         os.environ['BUCKET_NAME'] = bucket_name
 
-        # Mock an S3 bucket in the correct region
+        # Re-import to ensure lambda_function.BUCKET_NAME is refreshed
+        importlib.reload(lambda_function)
+
+        # Create the mock S3 bucket in the correct region
         s3 = boto3.client('s3', region_name='eu-west-3')
         s3.create_bucket(
             Bucket=bucket_name,
@@ -41,7 +45,7 @@ class TestLambdaFunction(unittest.TestCase):
         result = s3.get_object(Bucket=bucket_name, Key=body['file'])
         content = json.loads(result['Body'].read())
 
-        # Check expected keys and value ranges
+        # Validate keys and ranges
         self.assertIn('buoy_id', content)
         self.assertIn('timestamp', content)
         self.assertIn('location', content)
@@ -66,6 +70,8 @@ class TestLambdaFunction(unittest.TestCase):
         """
         if 'BUCKET_NAME' in os.environ:
             del os.environ['BUCKET_NAME']
+
+        importlib.reload(lambda_function)
 
         response = lambda_function.lambda_handler({}, {})
         self.assertEqual(response['statusCode'], 500)
