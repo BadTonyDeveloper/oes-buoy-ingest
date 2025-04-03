@@ -1,2 +1,2 @@
 boto3
-moto
+moto[s3]==4.1.8
