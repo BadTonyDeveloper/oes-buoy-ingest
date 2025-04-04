@@ -1,2 +1,4 @@
 boto3
 moto[s3]==4.1.8
+pandas
+pyarrow
