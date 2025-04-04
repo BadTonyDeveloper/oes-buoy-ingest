@@ -1,41 +1,28 @@
-name: CI/CD - Deploy Lambda Function
+name: CI - Test Lambda Functions
 
 on:
   push:
     branches:
-      - main
+      - "**"
+  pull_request:
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: 🧾 Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Python 3.12
+      - name: 🐍 Set up Python 3.12
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Run unit tests
-        run: python -m unittest test_lambda.py
-
-      - name: Zip Lambda function
-        run: zip function.zip lambda_function.py
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Deploy to AWS Lambda
+      - name: 📦 Install dev dependencies
         run: |
-          aws lambda update-function-code \
-            --function-name ${{ secrets.LAMBDA_FUNCTION_NAME }} \
-            --zip-file fileb://function.zip
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: 🧪 Run unit tests
+        run: python -m unittest discover tests

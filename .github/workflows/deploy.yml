@@ -1,4 +1,4 @@
-name: CI/CD - Deploy Lambda Functions
+name: CD - Deploy Lambda Functions
 
 on:
   push:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout repository
+      - name: 🧾 Checkout code
         uses: actions/checkout@v3
 
       - name: 🐍 Set up Python 3.12
@@ -18,55 +18,35 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: 🔧 Install prod dependencies
+      - name: 📦 Install production dependencies
         run: |
-          pip install -r requirements.txt -t lambda_build/
-
-      - name: 🔧 Install dev dependencies for tests
-        run: pip install -r requirements-dev.txt
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
 
       - name: 🧪 Run unit tests
         run: python -m unittest discover tests
 
-      # ------------------ DEPLOY Ingest Lambda ------------------
-      - name: 📁 Package ingest Lambda
+      - name: 📁 Zip Ingest Lambda
         run: |
-          cp lambda/ingest/lambda_function.py lambda_build/
-          cd lambda_build
-          zip -r ../lambda_function.zip .
-          cd ..
+          cd lambda/ingest
+          zip -r ../../ingest_function.zip .
 
-      - name: 🚀 Deploy ingest Lambda to AWS
+      - name: 📁 Zip Convert Lambda
         run: |
-          aws lambda update-function-code \
-            --function-name ${{ secrets.LAMBDA_FUNCTION_NAME }} \
-            --zip-file fileb://lambda_function.zip \
-            --region ${{ secrets.AWS_REGION }}
+          cd lambda/convert
+          zip -r ../../convert_function.zip .
 
-      # ------------------ DEPLOY Convert Lambda ------------------
-      - name: 📁 Clean and re-install for convert Lambda
-        run: |
-          rm -rf lambda_build && mkdir lambda_build
-          pip install -r requirements.txt -t lambda_build/
-
-      - name: 📁 Package convert Lambda
-        run: |
-          cp lambda/convert/convert_function.py lambda_build/
-          cd lambda_build
-          zip -r ../convert_function.zip .
-          cd ..
-
-      - name: 🚀 Deploy convert Lambda to AWS
-        run: |
-          aws lambda update-function-code \
-            --function-name convert-json-to-parquet \
-            --zip-file fileb://convert_function.zip \
-            --region ${{ secrets.AWS_REGION }}
-
-      # ------------------ AWS Authentication ------------------
       - name: 🔐 Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: 🚀 Deploy Ingest Lambda to AWS
+        run: |
+          aws lambda update-function-code             --function-name ${{ secrets.INGEST_LAMBDA_NAME }}             --zip-file fileb://ingest_function.zip
+
+      - name: 🚀 Deploy Convert Lambda to AWS
+        run: |
+          aws lambda update-function-code             --function-name ${{ secrets.CONVERT_LAMBDA_NAME }}             --zip-file fileb://convert_function.zip
