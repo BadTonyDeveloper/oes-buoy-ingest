@@ -53,4 +53,4 @@ jobs:
         run: |
           aws lambda update-function-code \
             --function-name ${{ secrets.INGEST_LAMBDA_NAME }} \
-            --zip-file fileb://ingest_function.zip
+            --zip-file fileb://lambda_function.zip
