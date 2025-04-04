@@ -24,7 +24,7 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: 📦 Install production dependencies
+      - name: 📦 Install dependencies in build layer
         run: |
           python -m pip install --upgrade pip
           mkdir -p package
@@ -33,39 +33,27 @@ jobs:
       - name: 🧪 Run unit tests
         run: python -m unittest discover tests
 
-      - name: 📁 Zip Ingest Lambda
+      - name: 📁 Prepare Lambda zip files
         run: |
-          cd lambda/ingest
-          zip -r ../../../lambda_function.zip ./*
-          cd ../../
+          cp lambda/ingest/lambda_function.py package/
+          cd package && zip -r ../lambda_function.zip . && cd ..
+          rm -rf package
+          mkdir -p package
+          pip install -r requirements.txt -t package/
+          cp lambda/convert/convert_function.py package/
+          cd package && zip -r ../convert_function.zip . && cd ..
 
-      - name: 📁 Zip Convert Lambda
-        run: |
-          cd lambda/convert
-          zip -r ../../../convert_function.zip ./*
-          cd ../../
-
-      - name: 🔐 Configure AWS credentials
+      - name: 🔐 Configure AWS credentials (dev-oes-user)
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: ☁️ Upload Convert ZIP to S3
-        run: |
-          aws s3 cp convert_function.zip s3://${{ env.S3_BUCKET }}/convert_function.zip
-
-      - name: ☁️ Upload Ingest ZIP to S3
+      - name: ☁️ Upload ZIPs to S3
         run: |
           aws s3 cp lambda_function.zip s3://${{ env.S3_BUCKET }}/lambda_function.zip
-
-      - name: 🚀 Deploy Convert Lambda from S3
-        run: |
-          aws lambda update-function-code \
-            --function-name ${{ env.CONVERT_LAMBDA_NAME }} \
-            --s3-bucket ${{ env.S3_BUCKET }} \
-            --s3-key convert_function.zip
+          aws s3 cp convert_function.zip s3://${{ env.S3_BUCKET }}/convert_function.zip
 
       - name: 🚀 Deploy Ingest Lambda from S3
         run: |
@@ -73,3 +61,10 @@ jobs:
             --function-name ${{ env.INGEST_LAMBDA_NAME }} \
             --s3-bucket ${{ env.S3_BUCKET }} \
             --s3-key lambda_function.zip
+
+      - name: 🚀 Deploy Convert Lambda from S3
+        run: |
+          aws lambda update-function-code \
+            --function-name ${{ env.CONVERT_LAMBDA_NAME }} \
+            --s3-bucket ${{ env.S3_BUCKET }} \
+            --s3-key convert_function.zip
