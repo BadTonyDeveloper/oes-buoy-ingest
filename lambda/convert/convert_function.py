@@ -10,29 +10,39 @@ RAW_PREFIX = 'raw/'
 PROCESSED_PREFIX = 'processed/'
 
 def lambda_handler(event=None, context=None):
-    response = s3.list_objects_v2(Bucket=BUCKET_NAME, Prefix=RAW_PREFIX)
-    objects = response.get('Contents', [])
+    try:
+        response = s3.list_objects_v2(Bucket=BUCKET_NAME, Prefix=RAW_PREFIX)
+        objects = response.get('Contents', [])
 
-    for obj in objects:
-        key = obj['Key']
-        if not key.endswith('.json'):
-            continue
+        for obj in objects:
+            key = obj['Key']
+            if not key.endswith('.json'):
+                continue
 
-        res = s3.get_object(Bucket=BUCKET_NAME, Key=key)
-        json_data = json.loads(res['Body'].read())
+            res = s3.get_object(Bucket=BUCKET_NAME, Key=key)
+            json_data = json.loads(res['Body'].read())
 
-        df = pd.json_normalize(json_data)
+            df = pd.json_normalize(json_data)
 
-        out_buffer = io.BytesIO()
-        df.to_parquet(out_buffer, index=False)
+            out_buffer = io.BytesIO()
+            df.to_parquet(out_buffer, index=False)
 
-        new_key = key.replace(RAW_PREFIX, PROCESSED_PREFIX).replace('.json', '.parquet')
+            new_key = key.replace(RAW_PREFIX, PROCESSED_PREFIX).replace('.json', '.parquet')
 
-        s3.put_object(
-            Bucket=BUCKET_NAME,
-            Key=new_key,
-            Body=out_buffer.getvalue(),
-            ContentType='application/octet-stream'
-        )
+            s3.put_object(
+                Bucket=BUCKET_NAME,
+                Key=new_key,
+                Body=out_buffer.getvalue(),
+                ContentType='application/octet-stream'
+            )
 
-    return {'message': f'{len(objects)} files processed.'}
+        return {
+            "statusCode": 200,
+            "body": json.dumps({"message": f"{len(objects)} files processed."})
+        }
+
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"error": str(e)})
+        }
