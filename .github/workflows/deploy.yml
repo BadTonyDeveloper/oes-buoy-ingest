@@ -1,16 +1,22 @@
-name: CI/CD - Deploy Lambda Functions
+name: CD - Deploy Lambda Functions
 
 on:
   push:
     branches:
       - main
 
+env:
+  AWS_REGION: eu-west-3
+  S3_BUCKET: oes-lambda-deploy-eu-west-3
+  CONVERT_LAMBDA_NAME: convert-json-to-parquet
+  INGEST_LAMBDA_NAME: oes-lambda-ingest-eu-west-3-dev
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🧾 Checkout code
+      - name: ⬇️ Checkout code
         uses: actions/checkout@v3
 
       - name: 🐍 Set up Python 3.12
@@ -21,36 +27,49 @@ jobs:
       - name: 📦 Install production dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt -t package
+          mkdir -p package
+          pip install -r requirements.txt -t package/
 
-      - name: 🔁 Copy function files
+      - name: 🧪 Run unit tests
+        run: python -m unittest discover tests
+
+      - name: 📁 Zip Ingest Lambda
         run: |
-          cp lambda/ingest/lambda_function.py package/
-          (cd package && zip -r ../lambda_function.zip .)
-          cp lambda/convert/convert_function.py package/
-          pip install pandas pyarrow -t package
-          (cd package && zip -r ../convert_function.zip .)
+          cd lambda/ingest
+          zip -r ../../../ingest_function.zip ./*
+          cd ../../
+
+      - name: 📁 Zip Convert Lambda
+        run: |
+          cd lambda/convert
+          zip -r ../../../convert_function.zip ./*
+          cd ../../
 
       - name: 🔐 Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: eu-west-3
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: ☁️ Upload Convert ZIP to S3
         run: |
-          aws s3 cp convert_function.zip s3://${{ secrets.LAMBDA_DEPLOY_BUCKET }}/convert_function.zip
+          aws s3 cp convert_function.zip s3://${{ env.S3_BUCKET }}/convert_function.zip
+
+      - name: ☁️ Upload Ingest ZIP to S3
+        run: |
+          aws s3 cp ingest_function.zip s3://${{ env.S3_BUCKET }}/ingest_function.zip
 
       - name: 🚀 Deploy Convert Lambda from S3
         run: |
           aws lambda update-function-code \
-            --function-name ${{ secrets.CONVERT_LAMBDA_NAME }} \
-            --s3-bucket ${{ secrets.LAMBDA_DEPLOY_BUCKET }} \
+            --function-name ${{ env.CONVERT_LAMBDA_NAME }} \
+            --s3-bucket ${{ env.S3_BUCKET }} \
             --s3-key convert_function.zip
 
-      - name: 🚀 Deploy Ingest Lambda from ZIP
+      - name: 🚀 Deploy Ingest Lambda from S3
         run: |
           aws lambda update-function-code \
-            --function-name ${{ secrets.INGEST_LAMBDA_NAME }} \
-            --zip-file fileb://lambda_function.zip
+            --function-name ${{ env.INGEST_LAMBDA_NAME }} \
+            --s3-bucket ${{ env.S3_BUCKET }} \
+            --s3-key ingest_function.zip
