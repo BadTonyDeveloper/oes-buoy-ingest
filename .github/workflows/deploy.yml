@@ -36,7 +36,7 @@ jobs:
       - name: 📁 Zip Ingest Lambda
         run: |
           cd lambda/ingest
-          zip -r ../../../ingest_function.zip ./*
+          zip -r ../../../lambda_function.zip ./*
           cd ../../
 
       - name: 📁 Zip Convert Lambda
@@ -58,7 +58,7 @@ jobs:
 
       - name: ☁️ Upload Ingest ZIP to S3
         run: |
-          aws s3 cp ingest_function.zip s3://${{ env.S3_BUCKET }}/ingest_function.zip
+          aws s3 cp lambda_function.zip s3://${{ env.S3_BUCKET }}/lambda_function.zip
 
       - name: 🚀 Deploy Convert Lambda from S3
         run: |
@@ -72,4 +72,4 @@ jobs:
           aws lambda update-function-code \
             --function-name ${{ env.INGEST_LAMBDA_NAME }} \
             --s3-bucket ${{ env.S3_BUCKET }} \
-            --s3-key ingest_function.zip
+            --s3-key lambda_function.zip
