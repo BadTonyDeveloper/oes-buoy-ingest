@@ -39,3 +39,13 @@ jobs:
           aws lambda update-function-code \
             --function-name ${{ secrets.LAMBDA_FUNCTION_NAME }} \
             --zip-file fileb://function.zip
+      
+      - name: Zip converter function
+        run: zip convert_function.zip convert_function.py
+
+      - name: Deploy converter function to AWS Lambda
+        run: |
+          aws lambda update-function-code \
+            --function-name convert-json-to-parquet \
+            --zip-file fileb://convert_function.zip
+
