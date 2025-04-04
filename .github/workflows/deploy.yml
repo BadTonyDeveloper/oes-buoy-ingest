@@ -26,7 +26,7 @@ jobs:
       - name: 🔁 Copy function files
         run: |
           cp lambda/ingest/ingest_function.py package/
-          (cd package && zip -r ../ingest_function.zip .)
+          (cd package && zip -r ../lambda_function.zip .)
           cp lambda/convert/convert_function.py package/
           pip install pandas pyarrow -t package
           (cd package && zip -r ../convert_function.zip .)
