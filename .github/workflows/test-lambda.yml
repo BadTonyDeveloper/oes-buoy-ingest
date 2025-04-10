@@ -1,4 +1,4 @@
-name: CI - Test Lambda Functions
+name: 🧪 Test Lambda Functions
 
 on:
   push:
