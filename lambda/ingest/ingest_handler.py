@@ -28,7 +28,7 @@ def generate_buoy_data():
         "current_speed_kph": round(random.uniform(1.0, 5.0), 2)
     }
 
-def lambda_handler(event, context):
+def ingest_data_handler(event, context):
     """
     AWS Lambda entry point. Generates a buoy data record, 
     stores it in an S3 bucket, and returns a status response.

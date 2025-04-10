@@ -8,7 +8,7 @@ import importlib
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../lambda/ingest"))
-import lambda_function
+import ingest_handler as lambda_function
 
 
 class TestLambdaFunction(unittest.TestCase):

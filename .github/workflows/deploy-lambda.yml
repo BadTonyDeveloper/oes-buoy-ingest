@@ -48,13 +48,6 @@ jobs:
       - name: ☁️ Upload Ingest ZIP to S3
         run: aws s3 cp lambda_function.zip s3://${{ secrets.LAMBDA_DEPLOY_BUCKET }}/lambda_function.zip
 
-      - name: ☁️ Upload Convert ZIP to S3
-        run: aws s3 cp convert_function.zip s3://${{ secrets.LAMBDA_DEPLOY_BUCKET }}/convert_function.zip
-
       - name: 🚀 Deploy Ingest Lambda from ZIP
         run: |
           aws lambda update-function-code             --function-name ${{ secrets.INGEST_LAMBDA_NAME }}             --s3-bucket ${{ secrets.LAMBDA_DEPLOY_BUCKET }}             --s3-key lambda_function.zip
-
-      - name: 🚀 Deploy Convert Lambda from ZIP
-        run: |
-          aws lambda update-function-code             --function-name ${{ secrets.CONVERT_LAMBDA_NAME }}             --s3-bucket ${{ secrets.LAMBDA_DEPLOY_BUCKET }}             --s3-key convert_function.zip

@@ -1,4 +1,4 @@
-name: Build and Push Lambda Container to ECR
+name: 🐳 Build, Push and Deploy Lambda Container to ECR
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
       - '.github/workflows/deploy-container.yml'
 
 jobs:
-  build-and-push:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -34,3 +34,9 @@ jobs:
       - name: 🚀 Push image to Amazon ECR
         run: |
           docker push 651706765226.dkr.ecr.eu-west-3.amazonaws.com/lambda-convert-container:latest
+
+      - name: 🔁 Update Lambda with new image
+        run: |
+          aws lambda update-function-code \
+            --function-name ${{ secrets.CONVERT_LAMBDA_NAME }} \
+            --image-uri 651706765226.dkr.ecr.eu-west-3.amazonaws.com/lambda-convert-container:latest
