@@ -29,7 +29,7 @@ jobs:
       - name: 📁 Prepare ingest Lambda zip
         run: |
           mkdir -p package
-          pip install -r requirements.txt -t package/
+          pip install -r requirements-ingest.txt -t package/
           cp lambda/ingest/ingest_handler.py package/
           cd package && zip -r ../ingest_handler.zip . && cd ..
 

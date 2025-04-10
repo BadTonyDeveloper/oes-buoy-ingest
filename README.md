@@ -43,12 +43,14 @@ Every push to the `main` branch automatically triggers the CI/CD workflow:
 
 ### 🔐 GitHub Secrets Required
 
-| Secret name               | Description                           |
+| Secret name               | Description                            |
 |---------------------------|----------------------------------------|
 | `AWS_ACCESS_KEY_ID`       | IAM access key                         |
 | `AWS_SECRET_ACCESS_KEY`   | IAM secret key                         |
 | `AWS_REGION`              | AWS region (e.g. `eu-west-3`)          |
-| `LAMBDA_FUNCTION_NAME`    | Main ingestion Lambda function name    |
+| `LAMBDA_DEPLOY_BUCKET`    | AWS S3 bucket name                     |
+| `INGEST_LAMBDA_NAME`      | Main ingestion Lambda function name    |
+| `CONVERT_LAMBDA_NAME`     | Main convertion Lambda function name   |
 
 ---
 
@@ -113,6 +115,7 @@ Screenshots and evidence of the setup are hosted in a [private OneDrive folder] 
 ## 👤 Author
 
 **BadTonyDeveloper**  
+Antonio Bueno Anton
 CLD7302 – Cloud Solutions  
 Academic Year 2024/25  
 The University of Boton
@@ -123,3 +126,9 @@ The University of Boton
 
 This repository is for academic use only.  
 All components are developed and deployed in a controlled educational environment.
+
+
+### 🧾 Dependency Management
+
+- `requirements-ingest.txt`: minimal dependencies for the ingest Lambda function (ZIP package)
+- `requirements.txt`: full dependencies for the convert Lambda function (Docker container)
