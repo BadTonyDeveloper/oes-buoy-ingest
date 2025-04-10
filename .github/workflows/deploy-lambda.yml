@@ -30,8 +30,8 @@ jobs:
         run: |
           mkdir -p package
           pip install -r requirements.txt -t package/
-          cp lambda/ingest/lambda_function.py package/
-          cd package && zip -r ../lambda_function.zip . && cd ..
+          cp lambda/ingest/ingest_handler.py package/
+          cd package && zip -r ../ingest_handler.zip . && cd ..
           rm -rf package
           mkdir -p package
           pip install -r requirements.txt -t package/
@@ -46,8 +46,8 @@ jobs:
           aws-region: eu-west-3
 
       - name: ☁️ Upload Ingest ZIP to S3
-        run: aws s3 cp lambda_function.zip s3://${{ secrets.LAMBDA_DEPLOY_BUCKET }}/lambda_function.zip
+        run: aws s3 cp ingest_handler.zip s3://${{ secrets.LAMBDA_DEPLOY_BUCKET }}/ingest_handler.zip
 
       - name: 🚀 Deploy Ingest Lambda from ZIP
         run: |
-          aws lambda update-function-code             --function-name ${{ secrets.INGEST_LAMBDA_NAME }}             --s3-bucket ${{ secrets.LAMBDA_DEPLOY_BUCKET }}             --s3-key lambda_function.zip
+          aws lambda update-function-code             --function-name ${{ secrets.INGEST_LAMBDA_NAME }}             --s3-bucket ${{ secrets.LAMBDA_DEPLOY_BUCKET }}             --s3-key ingest_handler.zip
