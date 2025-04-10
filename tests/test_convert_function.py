@@ -1,53 +1,62 @@
 import unittest
-import json
+from unittest.mock import patch
+from moto import mock_s3
 import boto3
 import os
+import json
 import importlib
-import pandas as pd
-from io import BytesIO
-from moto import mock_s3
 import sys
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "../lambda/convert"))
-import convert_function
+sys.path.append(os.path.join(os.path.dirname(__file__), "../lambda/ingest"))
+import ingest_handler
 
 
-class TestConvertLambdaFunction(unittest.TestCase):
+class TestLambdaFunction(unittest.TestCase):
 
     @mock_s3
-    def test_json_to_parquet_conversion(self):
+    def test_lambda_handler_success(self):
         bucket_name = "oes-buoy-data-eu-west-3-dev"
         os.environ['BUCKET_NAME'] = bucket_name
-        importlib.reload(convert_function)
+        importlib.reload(ingest_handler)
 
         s3 = boto3.client('s3', region_name='eu-west-3')
         s3.create_bucket(Bucket=bucket_name,
                          CreateBucketConfiguration={'LocationConstraint': 'eu-west-3'})
 
-        mock_json = {
-            "buoy_id": "buoy-123abc",
-            "timestamp": "2025-04-05T12:00:00Z",
-            "location": {"lat": 52.52, "lon": 13.405},
-            "sea_temp_c": 15.2,
-            "wave_height_m": 1.1,
-            "current_speed_kph": 2.9
-        }
-
-        raw_key = "raw/mock_data.json"
-        s3.put_object(Bucket=bucket_name, Key=raw_key,
-                      Body=json.dumps(mock_json), ContentType="application/json")
-
-        response = convert_function.lambda_handler({}, {})
+        response = ingest_handler.ingest_data_handler({}, {})
         self.assertEqual(response['statusCode'], 200)
 
-        processed_key = raw_key.replace("raw/", "processed/").replace(".json", ".parquet")
-        result = s3.get_object(Bucket=bucket_name, Key=processed_key)
-        parquet_content = result["Body"].read()
+        body = json.loads(response['body'])
+        self.assertIn('message', body)
+        self.assertIn('file', body)
+        self.assertTrue(body['file'].startswith('raw/'))
 
-        df = pd.read_parquet(BytesIO(parquet_content))
-        self.assertEqual(df.shape[0], 1)
-        self.assertIn("buoy_id", df.columns)
-        self.assertEqual(df.iloc[0]["buoy_id"], "buoy-123abc")
+        result = s3.get_object(Bucket=bucket_name, Key=body['file'])
+        content = json.loads(result['Body'].read())
+
+        self.assertIn('buoy_id', content)
+        self.assertIn('timestamp', content)
+        self.assertIn('location', content)
+        self.assertIn('sea_temp_c', content)
+        self.assertIn('wave_height_m', content)
+        self.assertIn('current_speed_kph', content)
+
+        self.assertGreaterEqual(content['sea_temp_c'], 10.0)
+        self.assertLessEqual(content['sea_temp_c'], 18.0)
+        self.assertGreaterEqual(content['wave_height_m'], 0.5)
+        self.assertLessEqual(content['wave_height_m'], 3.0)
+        self.assertGreaterEqual(content['current_speed_kph'], 1.0)
+        self.assertLessEqual(content['current_speed_kph'], 5.0)
+
+    @mock_s3
+    def test_lambda_handler_missing_bucket_env(self):
+        if 'BUCKET_NAME' in os.environ:
+            del os.environ['BUCKET_NAME']
+        importlib.reload(ingest_handler)
+        response = ingest_handler.ingest_data_handler({}, {})
+        self.assertEqual(response['statusCode'], 500)
+        body = json.loads(response['body'])
+        self.assertIn('error', body)
 
 
 if __name__ == '__main__':
