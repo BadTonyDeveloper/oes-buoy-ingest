@@ -22,7 +22,7 @@ oes-buoy-ingest/
 │       └── deploy.yml                # CI/CD workflow
 │
 ├── requirements.txt                 # Dependencies for production (Lambda)
-├── requirements-dev.txt            # Dev-only dependencies (e.g., moto for testing)
+├── requirements-dev.txt             # Dev-only dependencies (e.g., moto for testing)
 ├── README.md                        # This file
 └── .gitignore                       # Ignore rules
 ```
