@@ -5,23 +5,20 @@ from datetime import datetime
 import random
 import os
 
-# Create an S3 client for the specified AWS region
+# Cliente S3
 s3 = boto3.client('s3', region_name='eu-west-3')
-
-# Get the bucket name from environment variables
-BUCKET_NAME = os.environ.get('BUCKET_NAME')
+BUCKET_NAME = os.environ.get('BUCKET_NAME', '')
 
 def generate_buoy_data():
     """
-    Generates a simulated set of data representing ocean buoy sensor readings.
-    Returns a dictionary with buoy ID, timestamp, location, and sensor data.
+    Genera un diccionario con una sola lectura de boya.
     """
     return {
         "buoy_id": f"buoy-{uuid.uuid4().hex[:6]}",
         "timestamp": datetime.utcnow().isoformat(),
         "location": {
-            "lat": round(random.uniform(48.0, 60.0), 5),   # Latitude in European range
-            "lon": round(random.uniform(-10.0, 5.0), 5)    # Longitude in European range
+            "lat": round(random.uniform(48.0, 60.0), 5),
+            "lon": round(random.uniform(-10.0, 5.0), 5)
         },
         "sea_temp_c": round(random.uniform(10.0, 18.0), 2),
         "wave_height_m": round(random.uniform(0.5, 3.0), 2),
@@ -30,37 +27,37 @@ def generate_buoy_data():
 
 def ingest_data_handler(event, context):
     """
-    AWS Lambda entry point. Generates a buoy data record, 
-    stores it in an S3 bucket, and returns a status response.
+    Lambda que genera N lecturas y las sube como JSONs independientes a S3.
     """
     try:
-        # Validate bucket name
         if not BUCKET_NAME:
-            raise ValueError("BUCKET_NAME environment variable is not set.")
+            raise ValueError("BUCKET_NAME no definido en variables de entorno")
+        
+        num_readings = 20   # <-- Número de filas a generar por invocación
+        uploaded = []
 
-        # Generate simulated data
-        data = generate_buoy_data()
-        filename = f"raw/{data['buoy_id']}_{data['timestamp']}.json"
+        for i in range(num_readings):
+            data = generate_buoy_data()
+            # Nombre único basándose en ID, timestamp y un índice
+            filename = f"raw/{data['buoy_id']}_{data['timestamp']}_{i:02d}.json"
+            
+            s3.put_object(
+                Bucket=BUCKET_NAME,
+                Key=filename,
+                Body=json.dumps(data),
+                ContentType='application/json'
+            )
+            uploaded.append(filename)
 
-        # Upload JSON file to S3
-        s3.put_object(
-            Bucket=BUCKET_NAME,
-            Key=filename,
-            Body=json.dumps(data),
-            ContentType='application/json'
-        )
-
-        # Return success response
         return {
             'statusCode': 200,
             'body': json.dumps({
-                'message': 'Data uploaded successfully',
-                'file': filename
+                'message': f'{num_readings} lecturas subidas',
+                'files': uploaded
             })
         }
 
     except Exception as e:
-        # Return error response
         return {
             'statusCode': 500,
             'body': json.dumps({'error': str(e)})
