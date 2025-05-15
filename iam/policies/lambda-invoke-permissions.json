@@ -1,0 +1,27 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowInvokeSageMaker",
+      "Effect": "Allow",
+      "Action": "sagemaker:InvokeEndpoint",
+      "Resource": "arn:aws:sagemaker:eu-west-3:651706765226:endpoint/buoy-predictor-endpoint"
+    },
+    {
+      "Sid": "AllowWritePredictions",
+      "Effect": "Allow",
+      "Action": "s3:PutObject",
+      "Resource": "arn:aws:s3:::oes-buoy-data-eu-west-3-dev/predictions/*"
+    },
+    {
+      "Sid": "AllowCloudWatchLogsLambda",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "arn:aws:logs:eu-west-3:651706765226:*"
+    }
+  ]
+}
