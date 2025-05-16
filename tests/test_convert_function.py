@@ -24,7 +24,7 @@ class TestConvertLambdaFunction(unittest.TestCase):
             CreateBucketConfiguration={"LocationConstraint": "eu-west-3"},
         )
 
-        # Prepare a JSON batch with 5 records
+        # Subimos un batch JSON simulado
         batch = []
         for i in range(5):
             batch.append(
@@ -46,11 +46,16 @@ class TestConvertLambdaFunction(unittest.TestCase):
             ContentType="application/json",
         )
 
+        # Ejecutamos Lambda y obtenemos la respuesta
         response = convert_function.lambda_handler({}, {})
         self.assertEqual(response["statusCode"], 200)
 
-        processed_key = raw_key.replace("raw/", "processed/").replace(".json", ".parquet")
-        result = s3.get_object(Bucket=bucket_name, Key=processed_key)
+        body = json.loads(response["body"])
+        parquet_key = body["parquet_file"]
+        self.assertTrue(parquet_key.startswith("processed/buoy_all_"))
+
+        # Comprobamos el contenido del Parquet
+        result = s3.get_object(Bucket=bucket_name, Key=parquet_key)
         parquet_content = result["Body"].read()
 
         df = pd.read_parquet(BytesIO(parquet_content))
