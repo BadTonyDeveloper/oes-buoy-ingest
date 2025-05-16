@@ -2,6 +2,7 @@
 
 This repository contains the implementation of a serverless, event-driven architecture for Oceanic Energy Solutions (OES) to simulate, ingest, transform, and (future) predict marine buoy sensor data. The solution leverages AWS services, GitHub Actions CI/CD, and Terraform IaC.
 
+## This is test!
 ## 📁 Repository Structure
 ```
 ├── lambda
